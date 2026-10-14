@@ -1,0 +1,20 @@
+{
+  "imie": "szalts sominella",
+  "kierunek": "Uczeń technikum-mechatronik",
+  "powitanie": "cześć",
+  "opis": "Lubię eksperymentować z nowymi technologiami. W portfolio zbieram grafiki, teksty, nagrania i projekty stworzone podczas kursu sztucznej inteligencji.",
+  "zdjecie": "",
+  "zainteresowania": [
+    "Siłownia",
+    "gry komputerowe",
+    "praca"
+  ],
+  "umiejetnosci": [
+    "Tworzenie skutecznych promptów",
+    "Generowanie materiałów multimedialnych",
+    "Sprawdzanie i poprawianie wyników AI"
+  ],
+  "opis_umiejetnosci": "Podczas kursu łączę własne pomysły z możliwościami narzędzi AI.",
+  "github": "",
+  "email": ""
+}
