@@ -1,0 +1,21 @@
+Wyłącz monitor i przygotuj przewód HDMI.
+
+
+
+Podłącz przewód HDMI do gniazda HDMI w laptopie, a drugi koniec do gniazda HDMI w monitorze. Nie używaj DisplayPort.
+
+
+
+Włącz monitor i laptop, jeśli są wyłączone.
+
+
+
+Wybierz źródło obrazu na monitorze: użyj przycisków monitora, otwórz menu i wybierz HDMI.
+
+
+
+Ustaw wyświetlanie obrazu na laptopie: naciśnij Windows + P i wybierz „Duplikuj” lub „Rozszerz”.
+
+
+
+Sprawdź rozdzielczość w ustawieniach ekranu systemu Windows. Upewnij się, że obraz jest wyraźny i prawidłowo wyświetlany.
