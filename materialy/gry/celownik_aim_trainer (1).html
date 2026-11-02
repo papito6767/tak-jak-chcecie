@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celownik — Aim Trainer</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #11151b;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  #menu {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, #202936, #0d1015);
+    z-index: 10;
+  }
+  .panel {
+    width: min(92vw, 620px);
+    padding: 34px;
+    border: 1px solid #3c4654;
+    border-radius: 18px;
+    background: rgba(20,25,32,.96);
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    text-align: center;
+  }
+  h1 { margin: 0 0 12px; font-size: 42px; }
+  .desc { color: #b9c1cb; line-height: 1.6; }
+  button {
+    border: 0;
+    border-radius: 10px;
+    padding: 13px 24px;
+    margin-top: 18px;
+    background: #4ade80;
+    color: #07120b;
+    font-weight: 800;
+    font-size: 17px;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  #game { display: none; position: fixed; inset: 0; }
+  #arena {
+    position: absolute;
+    inset: 72px 0 0 0;
+    cursor: crosshair;
+    background:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+      #171c23;
+    background-size: 40px 40px;
+    overflow: hidden;
+  }
+  #hud {
+    position: absolute;
+    z-index: 5;
+    top: 0; left: 0; right: 0;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    background: #0d1117;
+    border-bottom: 1px solid #303844;
+  }
+  .stat { min-width: 100px; text-align: center; }
+  .label { display:block; color:#8d98a6; font-size:12px; text-transform:uppercase; }
+  .value { font-size:22px; font-weight:800; }
+  #timer { color:#4ade80; }
+  #message {
+    position: absolute;
+    top: 86px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.5);
+    color: #dce3ea;
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .target {
+    position: absolute;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: crosshair;
+    background: radial-gradient(circle, #fff 0 10%, #ef4444 11% 34%, #fff 35% 51%, #ef4444 52% 70%, #111 71% 100%);
+    box-shadow: 0 0 18px rgba(239,68,68,.45);
+  }
+  .target.moving { transition: left .08s linear, top .08s linear; }
+  .target.hit { animation: hit .12s ease-out; }
+  @keyframes hit {
+    0% { transform: translate(-50%,-50%) scale(1); }
+    100% { transform: translate(-50%,-50%) scale(1.35); opacity: 0; }
+  }
+  #gameOver {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(0,0,0,.78);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  #gameOver .box {
+    background:#171d25;
+    border:1px solid #3a4552;
+    border-radius:18px;
+    padding:30px;
+    width:min(90vw,440px);
+  }
+  .bad { color:#fb7185; }
+  .good { color:#4ade80; }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <div class="panel">
+    <h1>🎯 CELownik</h1>
+    <p class="desc">
+      Aim trainer w 3 etapach.<br><br>
+      <b>1.</b> Pierwsze 10 trafień — cel pojawia się losowo.<br>
+      <b>2.</b> Kolejne 10 — cel cały czas się porusza.<br>
+      <b>3.</b> Potem pojawiają się 3 cele naraz. Masz <b>2 sekundy na każdy cel</b>.
+    </p>
+    <button id="startBtn">START</button>
+  </div>
+</div>
+
+<div id="game">
+  <div id="hud">
+    <div class="stat"><span class="label">Trafienia</span><span class="value" id="hits">0</span></div>
+    <div class="stat"><span class="label">Etap</span><span class="value" id="stage">1 / 3</span></div>
+    <div class="stat"><span class="label">Celów</span><span class="value" id="remaining">10</span></div>
+    <div class="stat"><span class="label">Czas</span><span class="value" id="timer">∞</span></div>
+    <div class="stat"><span class="label">Celność</span><span class="value" id="accuracy">100%</span></div>
+  </div>
+  <div id="arena"></div>
+  <div id="message">Traf w czerwony cel!</div>
+
+  <div id="gameOver">
+    <div class="box">
+      <h1>💥 Koniec</h1>
+      <p id="result"></p>
+      <button id="restartBtn">ZAGRAJ PONOWNIE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const arena = document.getElementById('arena');
+const menu = document.getElementById('menu');
+const game = document.getElementById('game');
+const hitsEl = document.getElementById('hits');
+const stageEl = document.getElementById('stage');
+const remainingEl = document.getElementById('remaining');
+const timerEl = document.getElementById('timer');
+const accuracyEl = document.getElementById('accuracy');
+const message = document.getElementById('message');
+const gameOver = document.getElementById('gameOver');
+const result = document.getElementById('result');
+
+let hits = 0;
+let shots = 0;
+let stage = 1;
+let targets = [];
+let deadline = null;
+let timerLoop = null;
+let moveLoop = null;
+let gameRunning = false;
+
+function randomPos() {
+  const margin = 50;
+  return {
+    x: margin + Math.random() * Math.max(1, arena.clientWidth - margin * 2),
+    y: margin + Math.random() * Math.max(1, arena.clientHeight - margin * 2)
+  };
+}
+
+function makeTarget(moving=false) {
+  const t = document.createElement('div');
+  t.className = 'target' + (moving ? ' moving' : '');
+  t.dataset.moving = moving;
+  const p = randomPos();
+  t.style.left = p.x + 'px';
+  t.style.top = p.y + 'px';
+
+  t.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!gameRunning) return;
+    shots++;
+    hitTarget(t);
+  });
+
+  arena.appendChild(t);
+  targets.push(t);
+  return t;
+}
+
+function clearTargets() {
+  targets.forEach(t => t.remove());
+  targets = [];
+  deadline = null;
+  timerEl.textContent = stage === 3 ? '2.0 s' : '∞';
+}
+
+function hitTarget(t) {
+  t.classList.add('hit');
+  setTimeout(() => t.remove(), 100);
+  targets = targets.filter(x => x !== t);
+  hits++;
+  updateHud();
+
+  if (stage === 1 && hits < 10) {
+    makeTarget(false);
+  } else if (stage === 1 && hits === 10) {
+    stage = 2;
+    clearTargets();
+    message.textContent = 'ETAP 2 — cel porusza się!';
+    makeTarget(true);
+    startMovement();
+  } else if (stage === 2 && hits < 20) {
+    makeTarget(true);
+  } else if (stage === 2 && hits === 20) {
+    stage = 3;
+    clearTargets();
+    message.textContent = 'ETAP 3 — 3 cele! Masz 2 sekundy na każdy.';
+    spawnStage3();
+  } else if (stage === 3) {
+    if (targets.length === 0) {
+      spawnStage3();
+    } else {
+      resetStage3Timer();
+    }
+  }
+}
+
+function spawnStage3() {
+  clearTargets();
+  for (let i = 0; i < 3; i++) makeTarget(false);
+  resetStage3Timer();
+}
+
+function resetStage3Timer() {
+  deadline = performance.now() + 2000;
+}
+
+function startMovement() {
+  clearInterval(moveLoop);
+  moveLoop = setInterval(() => {
+    if (!gameRunning || stage !== 2) return;
+    targets.forEach(t => {
+      const p = randomPos();
+      t.style.left = p.x + 'px';
+      t.style.top = p.y + 'px';
+    });
+  }, 450);
+}
+
+function updateHud() {
+  hitsEl.textContent = hits;
+  stageEl.textContent = stage + ' / 3';
+
+  if (stage === 1) remainingEl.textContent = 10 - hits;
+  else if (stage === 2) remainingEl.textContent = 20 - hits;
+  else remainingEl.textContent = targets.length;
+
+  accuracyEl.textContent = shots ? Math.round(hits / shots * 100) + '%' : '100%';
+}
+
+function missClick() {
+  if (!gameRunning) return;
+  shots++;
+  updateHud();
+}
+
+arena.addEventListener('click', missClick);
+
+function gameTick(now) {
+  if (!gameRunning) return;
+
+  if (stage === 3 && deadline) {
+    const left = Math.max(0, deadline - now);
+    timerEl.textContent = (left / 1000).toFixed(1) + ' s';
+    if (left <= 0) {
+      endGame('Nie zdążyłeś trafić wszystkich celów w limicie czasu.');
+      return;
+    }
+  }
+
+  requestAnimationFrame(gameTick);
+}
+
+function startGame() {
+  hits = 0;
+  shots = 0;
+  stage = 1;
+  gameRunning = true;
+  gameOver.style.display = 'none';
+  menu.style.display = 'none';
+  game.style.display = 'block';
+  clearTargets();
+  makeTarget(false);
+  updateHud();
+  message.textContent = 'ETAP 1 — cel pojawia się losowo';
+  requestAnimationFrame(gameTick);
+}
+
+function endGame(reason) {
+  gameRunning = false;
+  clearInterval(moveLoop);
+  clearTargets();
+  timerEl.textContent = '—';
+  result.innerHTML = `
+    <span class="bad">${reason}</span><br><br>
+    Trafienia: <b>${hits}</b><br>
+    Strzały: <b>${shots}</b><br>
+    Celność: <b>${shots ? Math.round(hits/shots*100) : 0}%</b>
+  `;
+  gameOver.style.display = 'flex';
+}
+
+document.getElementById('startBtn').onclick = startGame;
+document.getElementById('restartBtn').onclick = startGame;
+
+window.addEventListener('resize', () => {
+  if (!gameRunning) return;
+  targets.forEach(t => {
+    const p = randomPos();
+    t.style.left = p.x + 'px';
+    t.style.top = p.y + 'px';
+  });
+});
+</script>
+</body>
+</html>
